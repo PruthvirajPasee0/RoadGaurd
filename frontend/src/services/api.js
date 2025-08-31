@@ -45,11 +45,17 @@ export const getWorkshopById = async (id) => {
   return data.data;
 };
 
+export const getWorkshopReviews = async (id) => {
+  const { data } = await api.get(`/workshops/${id}/reviews`);
+  return data.data;
+};
+
 // Service Requests
-export async function getRequests({ userId, workshopId, status } = {}) {
+export async function getRequests({ userId, workshopId, status, assignedWorkerId } = {}) {
   const params = {};
   if (userId) params.userId = userId;
   if (workshopId) params.workshopId = workshopId;
+  if (assignedWorkerId) params.assignedWorkerId = assignedWorkerId;
   if (status && status !== 'all') params.status = status;
   const { data } = await api.get('/requests', { params });
   return data.data;
@@ -82,4 +88,57 @@ export async function getMyWorkshop() {
 export async function updateRequestStatus(id, status) {
   const { data } = await api.patch(`/requests/${id}/status`, { status });
   return data.data; // updated request
+}
+
+// --- Admin: Users ---
+export async function adminGetUsers() {
+  const { data } = await api.get('/admin/users');
+  return data.data;
+}
+
+export async function adminUpdateUser(id, payload) {
+  const { data } = await api.patch(`/admin/users/${id}`, payload);
+  return data.data;
+}
+
+export async function adminDeleteUser(id) {
+  const { data } = await api.delete(`/admin/users/${id}`);
+  return data;
+}
+
+// --- Admin: Workshops ---
+export async function adminCreateWorkshop(payload) {
+  const { data } = await api.post('/admin/workshops', payload);
+  return data.data;
+}
+
+export async function adminUpdateWorkshop(id, payload) {
+  const { data } = await api.patch(`/admin/workshops/${id}`, payload);
+  return data.data;
+}
+
+export async function adminDeleteWorkshop(id) {
+  const { data } = await api.delete(`/admin/workshops/${id}`);
+  return data;
+}
+
+export async function adminAssignWorkerToWorkshop(workshopId, { userId, isPrimary }) {
+  const { data } = await api.post(`/admin/workshops/${workshopId}/assign-worker`, { userId, isPrimary });
+  return data;
+}
+
+export async function adminGetWorkshopWorkers(workshopId) {
+  const { data } = await api.get(`/admin/workshops/${workshopId}/workers`);
+  return data.data; // [{ id, name, phone, email, isPrimary }]
+}
+
+// --- Admin: Requests ---
+export async function adminApproveRequest(id) {
+  const { data } = await api.patch(`/admin/requests/${id}/approve`);
+  return data.data;
+}
+
+export async function adminAssignRequest(id, { workshopId, workerId }) {
+  const { data } = await api.post(`/admin/requests/${id}/assign`, { workshopId, workerId });
+  return data.data;
 }

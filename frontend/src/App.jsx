@@ -21,6 +21,9 @@ import Profile from './pages/Profile';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminWorkshops from './pages/admin/AdminWorkshops';
 import AdminReports from './pages/admin/AdminReports';
+import AdminRequests from './pages/admin/AdminRequests';
+import AdminWorkshopNew from './pages/admin/AdminWorkshopNew';
+import AdminWorkshopAssign from './pages/admin/AdminWorkshopAssign';
 import WorkerActiveRequests from './pages/worker/WorkerActiveRequests';
 import WorkerCompleted from './pages/worker/WorkerCompleted';
 import WorkerServiceMap from './pages/worker/WorkerServiceMap';
@@ -60,8 +63,16 @@ function AppRoutes() {
           <Route path="/dashboard" element={getDashboardComponent()} />
 
           {/* Common Routes */}
-          <Route path="/workshops" element={<Workshops />} />
-          <Route path="/workshops/:id" element={<WorkshopDetail />} />
+          <Route path="/workshops" element={
+            <ProtectedRoute allowedRoles={['user','admin']}>
+              <Workshops />
+            </ProtectedRoute>
+          } />
+          <Route path="/workshops/:id" element={
+            <ProtectedRoute allowedRoles={['user','admin']}>
+              <WorkshopDetail />
+            </ProtectedRoute>
+          } />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/profile" element={<Profile />} />
 
@@ -91,6 +102,21 @@ function AppRoutes() {
           <Route path="/admin/workshops" element={
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminWorkshops />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/workshops/new" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminWorkshopNew />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/workshops/:id/assign" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminWorkshopAssign />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/requests" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminRequests />
             </ProtectedRoute>
           } />
           <Route path="/admin/reports" element={

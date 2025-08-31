@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getWorkshopById } from '../services/api';
+import { getWorkshopById, getWorkshopReviews } from '../services/api';
 import { FiMapPin, FiStar, FiClock, FiPhone, FiMail, FiArrowLeft, FiCheckCircle } from 'react-icons/fi';
 import '../styles/WorkshopDetail.css';
+import OpenLayersMap from '../components/OpenLayersMap';
 
 const WorkshopDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [workshop, setWorkshop] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
 
   useEffect(() => {
     loadWorkshop();
+    loadReviews();
   }, [id]);
 
   const loadWorkshop = async () => {
@@ -23,6 +27,24 @@ const WorkshopDetail = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadReviews = async () => {
+    try {
+      setReviewsLoading(true);
+      const list = await getWorkshopReviews(id);
+      setReviews(Array.isArray(list) ? list : []);
+    } catch (e) {
+      console.error('Failed to load reviews:', e);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  const formatDate = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleDateString();
   };
 
   if (loading) {
@@ -154,10 +176,13 @@ const WorkshopDetail = () => {
         <div className="map-section">
           <h2>Location</h2>
           <div className="map-container">
-            <div className="map-placeholder">
-              <FiMapPin />
-              <p>Interactive map will be displayed here</p>
-              <p className="map-info">Google Maps integration coming soon</p>
+            <div style={{ height: 280 }}>
+              <OpenLayersMap
+                center={[workshop.lat || 12.9716, workshop.lng || 77.5946]}
+                zoom={14}
+                markers={[{ lat: workshop.lat || 12.9716, lng: workshop.lng || 77.5946 }]}
+                style={{ height: 280 }}
+              />
             </div>
           </div>
         </div>
@@ -165,50 +190,26 @@ const WorkshopDetail = () => {
         <div className="reviews-section">
           <h2>Customer Reviews</h2>
           <div className="reviews-list">
-            <div className="review-item">
-              <div className="review-header">
-                <div className="reviewer-info">
-                  <span className="reviewer-name">Rajesh Kumar</span>
-                  <div className="review-rating">
-                    {'★'.repeat(5)}
+            {reviewsLoading ? (
+              <div style={{ padding: '0.5rem', color: 'var(--text-secondary)' }}>Loading reviews...</div>
+            ) : reviews.length === 0 ? (
+              <div style={{ padding: '0.5rem', color: 'var(--text-secondary)' }}>No reviews yet.</div>
+            ) : (
+              reviews.map((rv) => (
+                <div key={rv.id} className="review-item">
+                  <div className="review-header">
+                    <div className="reviewer-info">
+                      <span className="reviewer-name">{rv.userName || 'Anonymous'}</span>
+                      <div className="review-rating">
+                        {'★'.repeat(Math.max(0, Math.min(5, Number(rv.rating) || 0)))}
+                      </div>
+                    </div>
+                    <span className="review-date">{formatDate(rv.createdAt)}</span>
                   </div>
+                  <p className="review-text">{rv.comment || ''}</p>
                 </div>
-                <span className="review-date">2 days ago</span>
-              </div>
-              <p className="review-text">
-                Excellent service! They arrived quickly and fixed my car's battery issue in no time. Very professional and friendly staff.
-              </p>
-            </div>
-
-            <div className="review-item">
-              <div className="review-header">
-                <div className="reviewer-info">
-                  <span className="reviewer-name">Priya Sharma</span>
-                  <div className="review-rating">
-                    {'★'.repeat(4)}
-                  </div>
-                </div>
-                <span className="review-date">1 week ago</span>
-              </div>
-              <p className="review-text">
-                Good service overall. The mechanic was knowledgeable and fixed the tire puncture efficiently. Prices are reasonable.
-              </p>
-            </div>
-
-            <div className="review-item">
-              <div className="review-header">
-                <div className="reviewer-info">
-                  <span className="reviewer-name">Ahmed Ali</span>
-                  <div className="review-rating">
-                    {'★'.repeat(5)}
-                  </div>
-                </div>
-                <span className="review-date">2 weeks ago</span>
-              </div>
-              <p className="review-text">
-                Highly recommended! 24/7 availability is a lifesaver. Got help at 2 AM when my car broke down. Thank you!
-              </p>
-            </div>
+              ))
+            )}
           </div>
         </div>
       </div>

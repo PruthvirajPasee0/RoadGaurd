@@ -5,6 +5,7 @@ import { fetchWorkshops, createRequest } from '../services/api';
 import { FiMapPin, FiTruck, FiPhone, FiAlertCircle } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import '../styles/ServiceRequest.css';
+import OpenLayersMap from '../components/OpenLayersMap';
 
 const ServiceRequest = () => {
   const { user } = useAuth();
@@ -283,9 +284,17 @@ const ServiceRequest = () => {
           </div>
 
           <div className="location-map">
-            <div className="map-placeholder-small">
-              <FiMapPin />
-              <p>Map preview (Google Maps integration pending)</p>
+            <div style={{ height: 220 }}>
+              <OpenLayersMap
+                center={[Number(formData.latitude) || 12.9716, Number(formData.longitude) || 77.5946]}
+                zoom={14}
+                markers={[{ lat: Number(formData.latitude) || 12.9716, lng: Number(formData.longitude) || 77.5946 }]}
+                onClick={(pos) => setFormData(prev => ({ ...prev, latitude: pos.lat, longitude: pos.lng }))}
+                style={{ height: 220 }}
+              />
+              <div style={{ color: 'var(--text-secondary)', marginTop: 8, fontSize: 12 }}>
+                Tip: Click on the map to set your exact location
+              </div>
             </div>
           </div>
         </div>

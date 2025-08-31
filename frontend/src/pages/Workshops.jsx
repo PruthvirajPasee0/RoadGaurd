@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { FiMapPin, FiStar, FiClock, FiGrid, FiList, FiMap, FiCrosshair, FiMaximize2, FiMinimize2 } from 'react-icons/fi';
-import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
-import L from 'leaflet';
 import { fetchWorkshopsByDistance, fetchWorkshops } from '../services/api';
 import '../styles/Workshops.css';
+import OpenLayersMap from '../components/OpenLayersMap';
 
 const Workshops = () => {
   const [workshops, setWorkshops] = useState([]);
@@ -106,15 +105,7 @@ const Workshops = () => {
     if (v !== 'custom') setRadiusKm(Number(v));
   };
 
-  const userIcon = useMemo(() => L.icon({
-    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
-  }), []);
+  // markers will be handled by OpenLayersMap
 
   const renderWorkshopCard = (workshop) => (
     <Link to={`/workshops/${workshop.id}`} key={workshop.id} className="workshop-card">
@@ -202,35 +193,16 @@ const Workshops = () => {
       </div>
 
       <div className="map-canvas" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', borderRadius: 'var(--radius-lg)' }}>
-        <MapContainer center={userPos || [12.9716, 77.5946]} zoom={13} scrollWheelZoom className="map-leaflet">
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          {userPos && (
-            <>
-              <Marker position={[userPos.lat, userPos.lng]} icon={userIcon}>
-                <Popup>You are here</Popup>
-              </Marker>
-              {radiusKm > 0 && (
-                <Circle center={[userPos.lat, userPos.lng]} radius={radiusKm * 1000} pathOptions={{ color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.1 }} />
-              )}
-            </>
-          )}
-
-          {workshops.map(w => (
-            <Marker key={w.id} position={[w.lat, w.lng]} icon={userIcon}>
-              <Popup>
-                <div style={{ minWidth: 180 }}>
-                  <strong>{w.name}</strong>
-                  <div style={{ color: 'var(--text-secondary)' }}>{w.address}</div>
-                  {w.distance && <div style={{ marginTop: 4 }}>{w.distance} km away</div>}
-                  <Link to={`/workshops/${w.id}`} className="btn btn-sm" style={{ marginTop: 8, display: 'inline-block' }}>View</Link>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
-        </MapContainer>
+        <OpenLayersMap
+          center={userPos ? [userPos.lat, userPos.lng] : [12.9716, 77.5946]}
+          zoom={13}
+          circleKm={radiusKm}
+          markers={[
+            ...(userPos ? [{ lat: userPos.lat, lng: userPos.lng }] : []),
+            ...workshops.map(w => ({ lat: w.lat, lng: w.lng }))
+          ]}
+          style={{ height: isFullScreen ? '70vh' : '60vh' }}
+        />
       </div>
 
       <div className="map-sidebar">
