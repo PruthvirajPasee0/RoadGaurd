@@ -3,7 +3,7 @@
 RoadGaurd is a comprehensive roadside assistance platform that connects users with nearby workshops and service providers for emergency vehicle assistance.
 
 Video:
-<video src="[path/to/video.mp4](https://drive.google.com/file/d/1fSSi_CTyru4J9Z3jb-ckEz2V74uauIQE/view?usp=sharing)" width="320" height="240" controls></video>
+https://drive.google.com/file/d/1fSSi_CTyru4J9Z3jb-ckEz2V74uauIQE/view?usp=sharing
 
 ## Project Overview
 
@@ -143,3 +143,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - Thanks to all contributors who have helped shape this project
 - Special thanks to the open-source community for the amazing tools and libraries
+
