@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getRequests, updateRequestStatus } from '../../services/api';
+import { getRequests, updateRequestStatus, getMyWorkshop } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import OpenLayersMap from '../../components/OpenLayersMap';
 import { haversineKm } from '../../utils/geo';
@@ -16,10 +16,28 @@ const WorkerActiveRequests = () => {
 
   useEffect(() => {
     const load = async () => {
+      if (!user?.id) return;
       setLoading(true);
       try {
-        const data = await getRequests({ assignedWorkerId: user?.id });
-        setRequests(Array.isArray(data) ? data : []);
+        // Fetch requests directly assigned to me
+        const mine = await getRequests({ assignedWorkerId: user.id });
+
+        // Fetch my workshop and then all workshop requests
+        let merged = Array.isArray(mine) ? mine : [];
+        try {
+          const workshop = await getMyWorkshop();
+          if (workshop?.id) {
+            const wsAll = await getRequests({ workshopId: workshop.id });
+            const wsRelevant = (Array.isArray(wsAll) ? wsAll : []).filter(r => !r.assignedWorkerId || r.assignedWorkerId === user.id);
+            const map = new Map();
+            [...merged, ...wsRelevant].forEach(r => map.set(r.id, r));
+            merged = Array.from(map.values());
+          }
+        } catch (_) {
+          // ignore workshop fetch errors
+        }
+
+        setRequests(merged);
       } catch (e) {
         console.error('Failed to load requests', e);
       } finally {

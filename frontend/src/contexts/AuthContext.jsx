@@ -68,17 +68,8 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('authToken', result.token);
         localStorage.setItem('authUser', JSON.stringify(result.user));
         toast.success('Registration successful!');
-        // Redirect based on role
-        switch (result.user.role) {
-          case 'admin':
-            navigate('/admin/dashboard');
-            break;
-          case 'worker':
-            navigate('/worker/dashboard');
-            break;
-          default:
-            navigate('/dashboard');
-        }
+        // Redirect to role-based dashboard route (handled in App.jsx)
+        navigate('/dashboard');
         return { success: true };
       } else {
         const msg = result?.error || 'Registration failed';
