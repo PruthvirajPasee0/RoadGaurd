@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { FiBell, FiCheckCircle, FiAlertCircle, FiInfo, FiClock } from 'react-icons/fi';
 import '../styles/Notifications.css';
+import { getNotifications, markNotificationRead } from '../services/api';
 
 const Notifications = () => {
   const { user } = useAuth();
@@ -16,8 +17,17 @@ const Notifications = () => {
   const loadNotifications = async () => {
     setLoading(true);
     try {
-      // TODO: Replace with real backend notifications API when available
-      setNotifications([]);
+      const rows = await getNotifications({ status: filter });
+      // Normalize to component's expected keys
+      const normalized = rows.map(r => ({
+        id: r.id,
+        title: r.title,
+        message: r.body,
+        isRead: !!r.is_read,
+        timestamp: r.created_at,
+        type: 'info',
+      }));
+      setNotifications(normalized);
     } catch (error) {
       console.error('Failed to load notifications:', error);
     } finally {
@@ -27,14 +37,12 @@ const Notifications = () => {
 
   const handleMarkAsRead = async (notificationId) => {
     try {
-      // Local-only mark-as-read until backend exists
-      setNotifications(prev => 
-        prev.map(notif => 
-          notif.id === notificationId 
-            ? { ...notif, isRead: true }
-            : notif
-        )
+      await markNotificationRead(notificationId);
+      setNotifications(prev =>
+        prev.map(n => (n.id === notificationId ? { ...n, isRead: true } : n))
       );
+      // Notify other parts of the app (e.g., header badge) to refresh
+      window.dispatchEvent(new Event('notifications-updated'));
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
     }

@@ -1,14 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getRequestById } from '../services/api';
+import { getRequestById, submitReview, downloadInvoice } from '../services/api';
 import { FiArrowLeft, FiMapPin, FiClock, FiPhone, FiUser, FiTruck, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import '../styles/RequestDetail.css';
+import { toast } from 'react-toastify';
+import { useAuth } from '../contexts/AuthContext';
 
 const RequestDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showReview, setShowReview] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
     loadRequest();
@@ -43,6 +50,43 @@ const RequestDetail = () => {
   const getStatusClass = (status) => {
     return status.toLowerCase().replace(/\s+/g, '-');
   };
+
+  const handleDownloadInvoice = async () => {
+    try {
+      const blob = await downloadInvoice(id);
+      const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `invoice-request-${id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      toast.error('Failed to download invoice');
+      console.error(e);
+    }
+  };
+
+  const handleSubmitReview = async () => {
+    if (!request?.workshopId) return toast.error('Workshop not found for this request');
+    if (!rating || rating < 1 || rating > 5) return toast.error('Please select a rating between 1 and 5');
+    try {
+      setSubmittingReview(true);
+      await submitReview(request.workshopId, { requestId: Number(id), rating: Number(rating), comment });
+      toast.success('Review submitted');
+      setShowReview(false);
+      setComment('');
+      setRating(5);
+    } catch (e) {
+      const msg = e?.response?.data?.error || 'Failed to submit review';
+      toast.error(msg);
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const isOwner = !!user && !!request && Number(user.id) === Number(request.userId);
 
   if (loading) {
     return (
@@ -207,8 +251,10 @@ const RequestDetail = () => {
               </div>
             </div>
             <div className="payment-actions">
-              <button className="btn btn-primary">Pay Now</button>
-              <button className="btn btn-secondary">Download Invoice</button>
+              {isOwner && <button className="btn btn-primary">Pay Now</button>}
+              {isOwner && (
+                <button className="btn btn-secondary" onClick={handleDownloadInvoice}>Download Invoice</button>
+              )}
             </div>
           </div>
         )}
@@ -217,12 +263,35 @@ const RequestDetail = () => {
           {request.status === 'pending' && (
             <button className="btn btn-danger">Cancel Request</button>
           )}
-          {request.status === 'completed' && (
-            <button className="btn btn-primary">Rate Service</button>
+          {request.status === 'completed' && isOwner && (
+            <button className="btn btn-primary" onClick={() => setShowReview(true)}>Rate Service</button>
           )}
           <button className="btn btn-secondary">Contact Support</button>
         </div>
       </div>
+      {showReview && isOwner && (
+        <div className="modal-overlay" onClick={() => setShowReview(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Rate Service</h3>
+            <div className="form-group">
+              <label>Rating (1-5)</label>
+              <select className="input" value={rating} onChange={(e) => setRating(Number(e.target.value))}>
+                {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Comment</label>
+              <textarea className="input textarea" rows={3} value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Share your experience (optional)" />
+            </div>
+            <div className="form-actions">
+              <button className="btn btn-secondary" onClick={() => setShowReview(false)}>Cancel</button>
+              <button className="btn btn-primary" disabled={submittingReview} onClick={handleSubmitReview}>
+                {submittingReview ? 'Submitting...' : 'Submit Review'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

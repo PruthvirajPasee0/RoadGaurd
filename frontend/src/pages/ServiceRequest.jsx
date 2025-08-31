@@ -6,6 +6,7 @@ import { FiMapPin, FiTruck, FiPhone, FiAlertCircle } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import '../styles/ServiceRequest.css';
 import OpenLayersMap from '../components/OpenLayersMap';
+import { reverseGeocode } from '../utils/geo';
 
 const ServiceRequest = () => {
   const { user } = useAuth();
@@ -42,24 +43,37 @@ const ServiceRequest = () => {
   };
 
   const getCurrentLocation = () => {
-    // Mock location for demo
-    setFormData(prev => ({
-      ...prev,
-      location: 'MG Road, Bengaluru',
-      latitude: 12.9716,
-      longitude: 77.5946
-    }));
-    
-    // In production, use actual geolocation
+    const fallback = async () => {
+      // Fallback to default Bangalore center
+      const lat = 12.9716;
+      const lng = 77.5946;
+      const name = await reverseGeocode(lat, lng);
+      setFormData(prev => ({ ...prev, location: name || 'MG Road, Bengaluru', latitude: lat, longitude: lng }));
+    };
+
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          console.log('Location obtained:', position.coords);
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          const name = await reverseGeocode(lat, lng);
+          setFormData(prev => ({ ...prev, location: name || prev.location || '', latitude: lat, longitude: lng }));
         },
-        (error) => {
+        async (error) => {
           console.error('Error getting location:', error);
+          await fallback();
         }
       );
+    } else {
+      fallback();
+    }
+  };
+
+  const handleMapClick = async (pos) => {
+    setFormData(prev => ({ ...prev, latitude: pos.lat, longitude: pos.lng }));
+    const name = await reverseGeocode(pos.lat, pos.lng);
+    if (name) {
+      setFormData(prev => ({ ...prev, location: name }));
     }
   };
 
@@ -289,7 +303,7 @@ const ServiceRequest = () => {
                 center={[Number(formData.latitude) || 12.9716, Number(formData.longitude) || 77.5946]}
                 zoom={14}
                 markers={[{ lat: Number(formData.latitude) || 12.9716, lng: Number(formData.longitude) || 77.5946 }]}
-                onClick={(pos) => setFormData(prev => ({ ...prev, latitude: pos.lat, longitude: pos.lng }))}
+                onClick={handleMapClick}
                 style={{ height: 220 }}
               />
               <div style={{ color: 'var(--text-secondary)', marginTop: 8, fontSize: 12 }}>

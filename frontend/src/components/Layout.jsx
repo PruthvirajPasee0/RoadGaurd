@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { FiMenu, FiX, FiHome, FiMapPin, FiTruck, FiList, FiBell, FiUser, FiLogOut, FiSettings, FiUsers, FiBarChart } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './LanguageSwitcher';
 import '../styles/Layout.css';
+import { getNotifications } from '../services/api';
 
 const Layout = () => {
   const { user, logout } = useAuth();
@@ -12,6 +13,27 @@ const Layout = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const loadUnread = async () => {
+    if (!user) { setUnreadCount(0); return; }
+    try {
+      const rows = await getNotifications({ status: 'unread' });
+      setUnreadCount(Array.isArray(rows) ? rows.length : 0);
+    } catch (_) {
+      setUnreadCount(0);
+    }
+  };
+
+  useEffect(() => {
+    loadUnread();
+  }, [user]);
+
+  useEffect(() => {
+    const handler = () => loadUnread();
+    window.addEventListener('notifications-updated', handler);
+    return () => window.removeEventListener('notifications-updated', handler);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -85,7 +107,9 @@ const Layout = () => {
             <LanguageSwitcher />
             <Link to="/notifications" className="header-nav-item">
               <FiBell />
-              <span className="notification-badge">3</span>
+              {unreadCount > 0 && (
+                <span className="notification-badge">{unreadCount}</span>
+              )}
             </Link>
 
             <div className="user-menu">

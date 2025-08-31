@@ -142,3 +142,37 @@ export async function adminAssignRequest(id, { workshopId, workerId }) {
   const { data } = await api.post(`/admin/requests/${id}/assign`, { workshopId, workerId });
   return data.data;
 }
+
+// --- Reviews ---
+export async function submitReview(workshopId, { requestId, rating, comment }) {
+  const payload = { requestId, rating, comment };
+  const { data } = await api.post(`/workshops/${workshopId}/reviews`, payload);
+  return data.data;
+}
+
+// --- Invoice PDF ---
+export async function downloadInvoice(requestId) {
+  const res = await api.get(`/requests/${requestId}/invoice.pdf`, { responseType: 'blob' });
+  return res.data; // Blob
+}
+
+// --- Notifications ---
+export async function getNotifications({ status = 'all', userId } = {}) {
+  const params = {};
+  if (status) params.status = status;
+  if (userId) params.userId = userId; // only respected for admin on backend
+  const { data } = await api.get('/notifications', { params });
+  return data.data; // [{ id, userId, title, body, is_read, read_at, created_at }]
+}
+
+export async function createNotification({ title, body, userId } = {}) {
+  const payload = { title, body };
+  if (userId) payload.userId = userId; // admin can target any user
+  const { data } = await api.post('/notifications', payload);
+  return data.data;
+}
+
+export async function markNotificationRead(id) {
+  const { data } = await api.post(`/notifications/${id}/read`);
+  return data.data;
+}
